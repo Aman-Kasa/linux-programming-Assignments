@@ -17,7 +17,7 @@ int main() {
         perror("Failed to open file for reading");
         return 1;
     }
-    char ch;
+    int ch;
     while ((ch = fgetc(fp)) != EOF) {
         // Continuous reading until end of file
     }
