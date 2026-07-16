@@ -1,0 +1,4 @@
+Thread 137285683115712 found 2 occurrences in file1.txt
+Thread 137285674723008 found 1 occurrences in file2.txt
+Thread 137285683115712 found 0 occurrences in file3.txt
+Thread 137285674723008 found 1 occurrences in file4.txt
