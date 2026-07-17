@@ -1,23 +1,77 @@
-# Linux Programming - Week 3 Formative Assignment 1
+# Linux Programming — Week 3 Formative Assignment 1
 
-**Student Name:** Aman Abraha Kasa  
-**Institution:** African Leadership University (ALU)  
-**Course:** Software Engineering - Linux Programming  
+<div align="center">
 
-## 📖 Repository Overview
-This repository contains my submissions for the Week 3 Formative Assignment 1. The assignment explores deep interactions with the Linux kernel, system execution pipelines, and low-level resource management across four distinct practical projects.
+**Aman Abraha Kasa**  
+African Leadership University (ALU)  
+Software Engineering — Linux Programming
 
-## 🗂️ Directory Structure
-* **`1st-Project/`**: Investigating a Suspicious Binary (Static ELF Analysis)
-* **`2nd-Project/`**: System Call Monitoring Tool (VFS Tracing via `strace`)
-* **`3rd-Project/`**: Building a Python Performance Extension (CPython C-API)
-* **`4th-Project/`**: Signal-Based Server Controller (POSIX `sigaction` IPC)
+</div>
 
-## ⚙️ Environment & Prerequisites
-To compile and run the programs in this repository, you must be using a Linux environment with the following tools installed:
-* **GCC** (GNU Compiler Collection)
-* **Python 3** and Python 3 Development Headers (`python3-dev`)
-* **GNU Binutils** (`objdump`, `nm`)
-* **System trace utility** (`strace`)
+---
 
-Please navigate into each individual project folder and read the specific `README.md` for detailed instructions on compilation, execution, and testing.
+## Overview
+
+This repository contains my submissions for **Week 3 Formative Assignment 1** in Linux Programming.  
+The projects focus on practical exploration of Linux internals, including binary analysis, system-call tracing, Python/C integration, and process signaling.
+
+---
+
+## Project Structure
+
+| Directory | Project Focus | Technical Area |
+|-----------|----------------|----------------|
+| `1st-Project/` | Investigating a Suspicious Binary | Static ELF analysis |
+| `2nd-Project/` | System Call Monitoring Tool | VFS tracing with `strace` |
+| `3rd-Project/` | Python Performance Extension | CPython C-API |
+| `4th-Project/` | Signal-Based Server Controller | POSIX `sigaction` IPC |
+
+---
+
+## Environment & Prerequisites
+
+To compile and run the programs, use a Linux environment with the following tools installed:
+
+- **GCC** (GNU Compiler Collection)
+- **Python 3**
+- **Python 3 Development Headers** (`python3-dev`)
+- **GNU Binutils** (`objdump`, `nm`)
+- **strace** (system-call tracing utility)
+
+### Suggested installation (Debian/Ubuntu)
+
+```bash
+sudo apt update
+sudo apt install -y build-essential python3 python3-dev binutils strace
+```
+
+---
+
+## Usage
+
+1. Navigate to one of the project directories:
+   ```bash
+   cd 1st-Project
+   ```
+
+2. Read the local `README.md` in that folder.
+
+3. Follow the provided instructions for:
+   - compilation
+   - execution
+   - testing and validation
+
+---
+
+## Notes
+
+- Each project is self-contained and includes detailed setup instructions.
+- Outputs may vary slightly depending on Linux distribution and kernel version.
+- This work is intended for academic and educational purposes.
+
+---
+
+## Author
+
+**Aman Abraha Kasa**  
+African Leadership University (ALU)
