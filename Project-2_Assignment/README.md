@@ -195,4 +195,4 @@ The report covers:
 
 This project is submitted as part of an academic assignment. You may freely use the code for learning purposes.
 
-Built with care by **Aman**, 2026.
+Built with care **Aman**, 2026.
