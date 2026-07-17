@@ -1,0 +1,7 @@
+Thread 2 | File: testfiles/log3.txt   | Occurrences: 16871
+Thread 5 | File: testfiles/log6.txt   | Occurrences: 16763
+Thread 0 | File: testfiles/log1.txt   | Occurrences: 17032
+Thread 1 | File: testfiles/log2.txt   | Occurrences: 17160
+Thread 4 | File: testfiles/log5.txt   | Occurrences: 16973
+Thread 3 | File: testfiles/log4.txt   | Occurrences: 16782
+TOTAL occurrences of 'error' across 6 file(s): 101581

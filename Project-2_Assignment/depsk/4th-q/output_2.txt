@@ -1,4 +1,0 @@
-file3.txt: 870
-file1.txt: 870
-file4.txt: 870
-file2.txt: 870
