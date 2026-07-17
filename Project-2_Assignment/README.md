@@ -1,3 +1,4 @@
+markdown
 # Project 2: System Calls, I/O Performance, and Multithreading
 
 [![C](https://img.shields.io/badge/C-17-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
@@ -9,27 +10,23 @@ A comprehensive exploration of **process communication**, **I/O system calls vs.
 ---
 
 ## 📂 Project Structure
-
 .
 ├── q1/
 │ ├── q1_pipeline.c # Question 1: pipe(), fork(), execvp() pipeline
 │ └── pipeline_output.txt # Captured output (generated)
-|
 ├── q2/
 │ ├── copy_syscall.c # Question 2a: low-level read/write copy
 │ ├── copy_stdio.c # Question 2b: stdio fread/fwrite copy
 │ └── testfile_100mb.bin # 100 MB test file (generate with dd)
-|
 ├── q3/
 │ └── prime_count.c # Question 3: 16-thread prime counter
-|
 ├── q4/
 │ ├── search.c # Question 4: multithreaded keyword search
 │ ├── generate_testfiles.py # Script to create sample log files
 │ └── testfiles/ # Pre-generated test files (log1.txt … log6.txt)
-|
 └── README.md
 
+text
 
 ---
 
@@ -152,15 +149,19 @@ grep -o error testfiles/log*.txt | wc -l
 📊 Performance Analysis
 Detailed timing tables, strace logs, and interpretation are provided in the accompanying Project 2 Report (report.pdf or report.md). The report covers:
 
-Syscall sequence walk‑through (Question-1)
+Syscall sequence walk‑through (Q1)
 
-System call count vs. wall‑clock time (Question-2)
+System call count vs. wall‑clock time (Q2)
 
-Mutex minimal critical section design (Question-3)
+Mutex minimal critical section design (Q3)
 
-Dynamic work‑queue scalability (Question-4)
+Dynamic work‑queue scalability (Q4)
 
 📄 License
 This project is submitted as part of an academic assignment. You may freely use the code for learning purposes.
 
 Built with care by Aman, 2026
+
+text
+
+
