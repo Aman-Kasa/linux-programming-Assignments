@@ -14,19 +14,22 @@ A comprehensive exploration of **process communication**, **I/O system calls vs.
 ├── q1/
 │ ├── q1_pipeline.c # Question 1: pipe(), fork(), execvp() pipeline
 │ └── pipeline_output.txt # Captured output (generated)
+|
 ├── q2/
 │ ├── copy_syscall.c # Question 2a: low-level read/write copy
 │ ├── copy_stdio.c # Question 2b: stdio fread/fwrite copy
 │ └── testfile_100mb.bin # 100 MB test file (generate with dd)
+|
 ├── q3/
 │ └── prime_count.c # Question 3: 16-thread prime counter
+|
 ├── q4/
 │ ├── search.c # Question 4: multithreaded keyword search
 │ ├── generate_testfiles.py # Script to create sample log files
 │ └── testfiles/ # Pre-generated test files (log1.txt … log6.txt)
+|
 └── README.md
 
-text
 
 ---
 
