@@ -228,24 +228,30 @@ print_number:
     push rsi
 
     mov rbx, 10         ; Base 10 divisor
-    mov rcx, 0          ; Digit count
     mov rdi, num_buf    ; Target buffer
     add rdi, 31         ; Move to end of buffer
-    mov byte [rdi], 0   ; Add null terminator
+    mov byte [rdi], 0   ; Null terminator
     dec rdi
+
+    ; Special case: if number is 0, store '0' and print immediately
+    test rax, rax
+    jnz .div_loop
+    mov byte [rdi], '0'
+    jmp .print_done
 
 .div_loop:
     xor rdx, rdx        ; Clear rdx before division
     div rbx             ; rax = rax / 10, rdx = rax % 10
-    add dl, '0'         ; Convert remainder to ASCII char
-    mov [rdi], dl       ; Store char in buffer
-    dec rdi             ; Move backwards in buffer
-    inc rcx             ; Increment digit count
-    test rax, rax       ; Check if quotient is 0
+    add dl, '0'         ; Convert remainder to ASCII
+    mov [rdi], dl       ; Store digit
+    dec rdi             ; Move backward
+    test rax, rax       ; Quotient zero?
     jnz .div_loop
 
-    inc rdi             ; Point to the first digit in the buffer
-    call print_string   ; Print the constructed string
+    inc rdi             ; Point to first digit
+
+.print_done:
+    call print_string   ; Print the constructed number string
 
     pop rsi
     pop rdi
