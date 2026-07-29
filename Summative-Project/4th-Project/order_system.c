@@ -1,8 +1,13 @@
 /**
  * Project 4: Multithreaded Order Processing System
- * 
+ *
  * Synchronizes a Kitchen (Producer), Delivery (Consumer), and Monitor thread
  * using POSIX Threads, Mutex locks, and Condition Variables.
+ *
+ * Improvements applied:
+ *  - Thread-safe console output via flockfile/funlockfile.
+ *  - Signal-safe sleep helper (continues after interrupted sleep).
+ *  - Comment clarifying when "orders delivered" counter is updated.
  */
 
 #include <stdio.h>
@@ -30,10 +35,10 @@ typedef struct {
     int head;                   // Index where next order is removed
     int tail;                   // Index where next order is inserted
     int count;                  // Current number of items in queue
-    
+
     // Shared Statistics
     int orders_prepared;        // Total orders produced
-    int orders_delivered;       // Total orders consumed
+    int orders_delivered;       // Total orders consumed (updated AFTER delivery completes)
     bool producer_done;         // Flag indicating kitchen has finished all orders
 
     // Synchronization Primitives
@@ -45,7 +50,9 @@ typedef struct {
 // Global Queue Instance
 static OrderQueue queue;
 
+// ------------------------------------------------------------
 // Helper: Get timestamp string for clean logging
+// ------------------------------------------------------------
 static void get_timestamp(char *buffer, size_t len) {
     time_t rawtime;
     struct tm *info;
@@ -54,13 +61,24 @@ static void get_timestamp(char *buffer, size_t len) {
     strftime(buffer, len, "%H:%M:%S", info);
 }
 
+// ------------------------------------------------------------
+// Helper: Signal-safe sleep (continues until full time elapsed)
+// ------------------------------------------------------------
+static void safe_sleep(int seconds) {
+    while (seconds > 0) {
+        seconds = sleep(seconds);
+    }
+}
+
+// ------------------------------------------------------------
 // Thread 1: Kitchen (Producer)
+// ------------------------------------------------------------
 void* kitchen_thread(void *arg) {
     (void)arg; // Unused parameter
 
     for (int id = 1; id <= TOTAL_ORDERS; id++) {
         // Simulate order preparation time (2 seconds)
-        sleep(PREP_TIME_SEC);
+        safe_sleep(PREP_TIME_SEC);
 
         Order new_order = { .order_id = id };
         char timestamp[10];
@@ -70,10 +88,13 @@ void* kitchen_thread(void *arg) {
 
         // Wait while the queue is at maximum capacity
         while (queue.count == QUEUE_CAPACITY) {
+            // Print waiting message atomically (no lock held during wait)
+            flockfile(stdout);
             get_timestamp(timestamp, sizeof(timestamp));
-            printf("[%s] [KITCHEN]  Queue is FULL (%d/%d). Waiting for delivery...\n", 
+            printf("[%s] [KITCHEN]  Queue is FULL (%d/%d). Waiting for delivery...\n",
                    timestamp, queue.count, QUEUE_CAPACITY);
-            
+            funlockfile(stdout);
+
             // Releases mutex and blocks until cond_not_full is signaled
             pthread_cond_wait(&queue.cond_not_full, &queue.mutex);
         }
@@ -84,9 +105,12 @@ void* kitchen_thread(void *arg) {
         queue.count++;
         queue.orders_prepared++;
 
+        // Print preparation message atomically (still inside mutex, but stdout is locked separately)
+        flockfile(stdout);
         get_timestamp(timestamp, sizeof(timestamp));
-        printf("[%s] [KITCHEN]  Prepared Order #%d | Queue Size: %d/%d\n", 
+        printf("[%s] [KITCHEN]  Prepared Order #%d | Queue Size: %d/%d\n",
                timestamp, new_order.order_id, queue.count, QUEUE_CAPACITY);
+        funlockfile(stdout);
 
         // Signal consumer thread that a new item is available
         pthread_cond_signal(&queue.cond_not_empty);
@@ -105,7 +129,9 @@ void* kitchen_thread(void *arg) {
     return NULL;
 }
 
+// ------------------------------------------------------------
 // Thread 2: Delivery (Consumer)
+// ------------------------------------------------------------
 void* delivery_thread(void *arg) {
     (void)arg;
 
@@ -118,9 +144,11 @@ void* delivery_thread(void *arg) {
 
         // Wait while the queue is empty AND kitchen is still active
         while (queue.count == 0 && !queue.producer_done) {
+            flockfile(stdout);
             get_timestamp(timestamp, sizeof(timestamp));
             printf("[%s] [DELIVERY] Queue is EMPTY. Waiting for kitchen...\n", timestamp);
-            
+            funlockfile(stdout);
+
             // Releases mutex and blocks until cond_not_empty is signaled
             pthread_cond_wait(&queue.cond_not_empty, &queue.mutex);
         }
@@ -136,9 +164,11 @@ void* delivery_thread(void *arg) {
         queue.head = (queue.head + 1) % QUEUE_CAPACITY;
         queue.count--;
 
+        flockfile(stdout);
         get_timestamp(timestamp, sizeof(timestamp));
-        printf("[%s] [DELIVERY] Picked up Order #%d | Queue Size: %d/%d\n", 
+        printf("[%s] [DELIVERY] Picked up Order #%d | Queue Size: %d/%d\n",
                timestamp, current_order.order_id, queue.count, QUEUE_CAPACITY);
+        funlockfile(stdout);
 
         // Signal producer thread that space is now available
         pthread_cond_signal(&queue.cond_not_full);
@@ -147,26 +177,38 @@ void* delivery_thread(void *arg) {
         // --- Critical Section End ---
 
         // Simulate delivery processing time (4 seconds) OUTSIDE critical section
-        sleep(DELIVERY_TIME_SEC);
+        safe_sleep(DELIVERY_TIME_SEC);
 
-        // Update delivered count safely
+        // ------------------------------------------------------------
+        // NOTE: orders_delivered is incremented AFTER delivery completes,
+        // which accurately reflects the real-world meaning of "delivered".
+        // While the order is in transit, the monitor may report it as
+        // already removed from the queue but not yet counted as delivered.
+        // This is intentional and mirrors actual system behaviour.
+        // ------------------------------------------------------------
         pthread_mutex_lock(&queue.mutex);
         queue.orders_delivered++;
+
+        flockfile(stdout);
         get_timestamp(timestamp, sizeof(timestamp));
-        printf("[%s] [DELIVERY] Completed Delivery for Order #%d\n", 
+        printf("[%s] [DELIVERY] Completed Delivery for Order #%d\n",
                timestamp, current_order.order_id);
+        funlockfile(stdout);
+
         pthread_mutex_unlock(&queue.mutex);
     }
 
     return NULL;
 }
 
+// ------------------------------------------------------------
 // Thread 3: Monitoring Thread
+// ------------------------------------------------------------
 void* monitor_thread(void *arg) {
     (void)arg;
 
     while (1) {
-        sleep(MONITOR_INTERVAL_SEC);
+        safe_sleep(MONITOR_INTERVAL_SEC);
 
         char timestamp[10];
         get_timestamp(timestamp, sizeof(timestamp));
@@ -181,13 +223,15 @@ void* monitor_thread(void *arg) {
 
         pthread_mutex_unlock(&queue.mutex);
 
-        // Print monitoring report
+        // Print monitoring report atomically (no risk of interleaving)
+        flockfile(stdout);
         printf("\n==========================================");
         printf("\n [%s] SYSTEM MONITOR REPORT", timestamp);
         printf("\n   - Orders Prepared  : %d", prepared);
         printf("\n   - Orders Delivered : %d", delivered);
         printf("\n   - Current Queue Size: %d/%d", current_size, QUEUE_CAPACITY);
         printf("\n==========================================\n\n");
+        funlockfile(stdout);
 
         if (done) {
             break; // Stop monitoring when work is done
@@ -197,7 +241,9 @@ void* monitor_thread(void *arg) {
     return NULL;
 }
 
+// ------------------------------------------------------------
 // Main Function: Initializes resources, spawns threads, and cleans up
+// ------------------------------------------------------------
 int main(void) {
     pthread_t kitchen_tid, delivery_tid, monitor_tid;
 
@@ -220,6 +266,7 @@ int main(void) {
         return 1;
     }
 
+    // Print system startup banner (no other threads yet, no locking needed)
     printf("==========================================");
     printf("\n   STARTING ORDER PROCESSING SYSTEM");
     printf("\n   Target Total Orders: %d", TOTAL_ORDERS);
