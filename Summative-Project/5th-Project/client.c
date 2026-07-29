@@ -3,7 +3,37 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "common.h"
+
+// Robust send/recv wrappers (same logic as server)
+static int send_all(int sock, const void *buf, size_t len) {
+    const char *ptr = (const char *)buf;
+    size_t remaining = len;
+    while (remaining > 0) {
+        ssize_t n = send(sock, ptr, remaining, 0);
+        if (n <= 0) return -1;
+        remaining -= n;
+        ptr += n;
+    }
+    return 0;
+}
+
+static int recv_all(int sock, void *buf, size_t len) {
+    char *ptr = (char *)buf;
+    size_t remaining = len;
+    while (remaining > 0) {
+        ssize_t n = recv(sock, ptr, remaining, 0);
+        if (n == 0) return 0;
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            return -1;
+        }
+        remaining -= n;
+        ptr += n;
+    }
+    return 1;
+}
 
 void clear_stdin() {
     int c;
@@ -33,20 +63,35 @@ int main() {
 
     printf("--- University Lab Booking System ---\n");
     printf("Enter User ID: ");
-    scanf("%63s", user_id);
+    if (scanf("%63s", user_id) != 1) {
+        fprintf(stderr, "Input error\n");
+        close(sock);
+        return 1;
+    }
+    clear_stdin();  // remove leftover newline
 
     // Authentication
+    memset(&msg, 0, sizeof(msg));
     msg.type = MSG_AUTH_REQ;
-    strcpy(msg.payload, user_id);
-    send(sock, &msg, sizeof(Message), 0);
-    
-    recv(sock, &response, sizeof(Message), 0);
+    strncpy(msg.payload, user_id, MAX_PAYLOAD - 1);
+    if (send_all(sock, &msg, sizeof(Message)) != 0) {
+        perror("send failed");
+        close(sock);
+        return 1;
+    }
+
+    if (recv_all(sock, &response, sizeof(Message)) <= 0) {
+        printf("Server closed connection.\n");
+        close(sock);
+        return 1;
+    }
+
     if (response.status == 0) {
         printf("Authentication failed: %s\n", response.payload);
         close(sock);
         return 1;
     }
-    
+
     printf("\n[%s] %s\n", user_id, response.payload);
 
     int choice;
@@ -55,41 +100,51 @@ int main() {
         printf("2. Request Reservation\n");
         printf("3. Exit Session\n");
         printf("Select option: ");
-        
+
         if (scanf("%d", &choice) != 1) {
             clear_stdin();
+            printf("Invalid input. Try again.\n");
             continue;
         }
+        clear_stdin();
 
-        memset(&msg, 0, sizeof(Message));
-        
+        memset(&msg, 0, sizeof(msg));
+
         if (choice == 1) {
             msg.type = MSG_LIST_REQ;
-            send(sock, &msg, sizeof(Message), 0);
-            recv(sock, &response, sizeof(Message), 0);
+            send_all(sock, &msg, sizeof(Message));
+            if (recv_all(sock, &response, sizeof(Message)) <= 0) break;
             printf("\n--- Equipment List ---\n%s----------------------\n", response.payload);
-        } 
+        }
         else if (choice == 2) {
             int eq_id;
             printf("Enter Equipment ID to reserve: ");
-            scanf("%d", &eq_id);
-            
+            if (scanf("%d", &eq_id) != 1) {
+                clear_stdin();
+                printf("Invalid ID.\n");
+                continue;
+            }
+            clear_stdin();
+
             msg.type = MSG_RSV_REQ;
             snprintf(msg.payload, sizeof(msg.payload), "%d", eq_id);
-            send(sock, &msg, sizeof(Message), 0);
-            
-            recv(sock, &response, sizeof(Message), 0);
+            send_all(sock, &msg, sizeof(Message));
+
+            if (recv_all(sock, &response, sizeof(Message)) <= 0) break;
             if (response.status == 1) {
                 printf("\n[SUCCESS] %s\n", response.payload);
             } else {
                 printf("\n[DENIED] %s\n", response.payload);
             }
-        } 
+        }
         else if (choice == 3) {
             msg.type = MSG_EXIT;
-            send(sock, &msg, sizeof(Message), 0);
+            send_all(sock, &msg, sizeof(Message));
             printf("\nSession closed. Goodbye, %s\n", user_id);
             break;
+        }
+        else {
+            printf("Invalid choice.\n");
         }
     }
 
