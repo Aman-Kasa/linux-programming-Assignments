@@ -8,145 +8,161 @@
 
 ## 1. Introduction
 
-A smart agriculture platform collects large volumes of environmental sensor readings (soil moisture, temperature, humidity) from IoT devices. Pure Python processing can become a bottleneck at scale. This project implements a small Python C extension module, `sensor_analysis`, that provides several high-performance statistical routines for numeric sequences while minimizing memory allocations and Python/C overhead.
+A smart agriculture platform collects large volumes of environmental sensor readings (soil moisture, temperature, humidity) from IoT devices. Pure Python processing can become a bottleneck at scale. This project implements a native C extension module named `sensor_analysis` that performs essential statistical computations directly in C and exposes them as standard Python callables.
 
-The goals are:
-- Reduce per-element Python overhead for tight numeric loops.
-- Keep auxiliary memory usage minimal (O(1) extra space).
-- Preserve numerical accuracy where important.
-- Expose a simple, Pythonic API.
+The module provides five functions:
+- `average`
+- `range_value`
+- `variance`
+- `count_above`
+- `statistics`
+
+All numerical work is executed in C using double-precision floating-point arithmetic, with input validation, exception handling, and memory-safe design.
 
 ---
 
-## 2. Design overview
+## 2. Design Overview
 
-### 2.1 Python C API usage
+### 2.1 Python C API Usage
 
-The extension uses the Python C API (`Python.h`) with the following patterns:
-- Parse arguments with `PyArg_ParseTuple`.
-- Use the fast sequence protocol (`PySequence_Fast`) to treat input lists/tuples as contiguous sequences.
-- Convert elements to `double` via `PyNumber_Float` and `PyFloat_AsDouble`.
-- Construct return values using `PyFloat_FromDouble`, `PyLong_FromLong`, and Python dictionary helpers (`PyDict_New`, `PyDict_SetItemString`).
-- Raise Python exceptions (`PyExc_TypeError`, `PyExc_ValueError`) for invalid inputs.
-- Manage reference counts carefully (`Py_INCREF` / `Py_DECREF`) to avoid leaks.
+The module uses the Python C API (`Python.h`) to:
+- Parse input arguments with `PyArg_ParseTuple`.
+- Treat input sequences (list/tuple) via the fast sequence protocol (`PySequence_Fast`).
+- Convert sequence elements to C `double` using `PyNumber_Float` and `PyFloat_AsDouble`.
+- Construct return values with `PyFloat_FromDouble`, `PyLong_FromLong`, `PyDict_New`, and `PyDict_SetItemString`.
+- Raise exceptions (`PyExc_TypeError`, `PyExc_ValueError`) on invalid input.
+- Manage reference counts with `Py_INCREF` and `Py_DECREF` to avoid memory leaks.
 
-### 2.2 No unnecessary dynamic memory allocation
+### 2.2 No Unnecessary Dynamic Memory Allocation
 
-The implementation avoids heap allocation for the data processing itself (no `malloc`/`calloc` for element buffers). It traverses the input sequence directly (via `PySequence_Fast_GET_ITEM`) and converts each element on-the-fly. Advantages:
+The module does not call `malloc`, `calloc`, or other heap allocation functions for data storage. Instead, it traverses the input sequence directly through `PySequence_Fast_GET_ITEM`, extracting one number at a time. Statistics are accumulated in local C variables such as `sum`, `min`, and `max`.
+
+This design:
 - Eliminates allocation/deallocation overhead.
-- Avoids accumulation of memory leaks.
-- Keeps extra space complexity at O(1).
+- Avoids memory leaks.
+- Keeps auxiliary space complexity at **O(1)**.
 
-### 2.3 Reference counting and object lifecycle
+### 2.3 Reference Counting and Object Lifecycle
 
-Temporary Python objects (for example, the result of `PyNumber_Float`) are immediately decref'd after extracting their C `double` value. Returned Python objects are created and returned with the appropriate reference ownership. All API entry points validate inputs and raise informative Python exceptions on error.
+Temporary Python objects created during numeric conversion are immediately decremented after their values are extracted. Returned objects are created with the correct reference count, ensuring proper ownership and garbage collection.
 
 ---
 
-## 3. Functions and behavior
+## 3. Function Descriptions
 
-All functions accept a Python sequence (list/tuple/other sequence) of numeric values. For non-sequence or non-numeric inputs the functions raise `TypeError`. For insufficient-length inputs (when a minimum sample size is required) the functions raise `ValueError`.
+### 3.1 `average(data)`
 
-### 3.1 average(data)
+**Purpose:** Compute the arithmetic mean.
 
-Purpose: Compute the arithmetic mean.
+**Mathematical formula:**  
+\[
+\bar{x} = \frac{1}{N} \sum_{i=0}^{N-1} x_i
+\]
 
-Mathematical formula:
-x̄ = (1/N) ∑_{i=0}^{N-1} x_i
+**Time Complexity:** O(N) — single pass over the input sequence.  
+**Space Complexity:** O(1).
 
-Time complexity: O(N) — single pass.  
-Space complexity: O(1).
+**Implementation notes:**
+- Converts input to a fast sequence and checks that its length is greater than 0.
+- Iterates with a helper that validates every element and extracts its `double` value.
+- Accumulates the sum in a local `double`, then returns `PyFloat_FromDouble(sum / len)`.
 
-Notes:
-- Requires N >= 1 (raises `ValueError` if empty).
-- Uses a local `double` accumulator.
+### 3.2 `range_value(data)`
 
-### 3.2 range_value(data)
+**Purpose:** Compute the difference between the maximum and minimum readings.
 
-Purpose: Difference between maximum and minimum readings.
+**Mathematical formula:**  
+\[
+\text{Range} = x_{\max} - x_{\min}
+\]
 
-Mathematical formula:
-Range = x_max - x_min
+**Time Complexity:** O(N).  
+**Space Complexity:** O(1).
 
-Time complexity: O(N).  
-Space complexity: O(1).
+**Implementation notes:**
+- Initializes `min_val` to `DBL_MAX` and `max_val` to `-DBL_MAX`.
+- Performs a single-pass update of the extremes.
+- Returns the result as a Python float.
 
-Notes:
-- Initializes `min_val` to `DBL_MAX` and `max_val` to `-DBL_MAX` (from `<float.h>`).
-- Single-pass update of extremes; returns a float.
+### 3.3 `variance(data)`
 
-### 3.3 variance(data)
+**Purpose:** Compute the sample variance using the unbiased estimator.
 
-Purpose: Sample variance (unbiased estimator using N−1 degrees of freedom).
+**Mathematical formula:**  
+\[
+s^2 = \frac{1}{N - 1} \sum_{i=0}^{N-1} (x_i - \bar{x})^2
+\]
 
-Mathematical formula:
-s^2 = (1 / (N - 1)) ∑_{i=0}^{N-1} (x_i - x̄)^2
+**Time Complexity:** O(N) — two passes.  
+**Space Complexity:** O(1).
 
-Time complexity: O(N) — two passes (one for mean, one for squared differences).  
-Space complexity: O(1).
+**Numerical accuracy:**
+- Uses a two-pass algorithm: first compute the mean, then compute the sum of squared deviations.
+- This reduces catastrophic cancellation compared to a naive one-pass formula.
+- Requires at least 2 data points.
 
-Numerical accuracy:
-- Uses a two-pass algorithm (compute mean, then sum squared deviations) to reduce catastrophic cancellation versus the naive single-pass formula.
-- Requires at least 2 data points (raises `ValueError` otherwise).
+### 3.4 `count_above(data, limit)`
 
-### 3.4 count_above(data, limit)
+**Purpose:** Count readings strictly greater than a given threshold.
 
-Purpose: Count of readings strictly greater than a given threshold.
+**Mathematical formula:**  
+\[
+C = \sum_{i=0}^{N-1} 1_{x_i > limit}
+\]
 
-Mathematical formula:
-C = ∑_{i=0}^{N-1} 1_{x_i > limit}
+**Time Complexity:** O(N).  
+**Space Complexity:** O(1).
 
-Time complexity: O(N).  
-Space complexity: O(1).
-
-Notes:
+**Implementation notes:**
 - Accepts a second argument `limit` parsed as a Python float.
-- Returns an integer (`PyLong`) count.
+- Returns an integer count.
 
-### 3.5 statistics(data)
+### 3.5 `statistics(data)`
 
-Purpose: Convenience function returning a dictionary with common summary statistics.
+**Purpose:** Return a dictionary with common summary statistics.
 
-Output format:
+**Output format:**
+```python
 {
     "samples": N,
     "average": mean,
     "minimum": min_val,
     "maximum": max_val
 }
+```
 
-Time complexity: O(N).  
-Space complexity: O(1) (aside from the resulting Python dict).
-
----
-
-## 4. Input validation and errors
-
-- All functions check that the first argument is a sequence and raise `TypeError` otherwise.
-- Numeric conversion is attempted for each element; non-convertible elements raise `TypeError`.
-- Functions that require a minimum number of samples raise `ValueError` with a meaningful message.
+**Time Complexity:** O(N).  
+**Space Complexity:** O(1), aside from the resulting Python dictionary.
 
 ---
 
-## 5. Building and installing
+## 4. Input Validation and Errors
 
-Typical build using setuptools (example `setup.py` approach):
+- All functions verify that the first argument is a sequence and raise `TypeError` otherwise.
+- Each element must be numeric or convertible to a number; otherwise `TypeError` is raised.
+- Functions requiring a minimum number of samples raise `ValueError` with a meaningful message.
 
-1. Ensure you have a compatible Python development environment (headers and a C compiler).
-2. From the project root run:
+---
+
+## 5. Building and Installing
+
+Example build using `setuptools`:
+
+1. Ensure a compatible Python development environment is installed, including headers and a C compiler.
+2. From the project root, run:
    ```bash
    python3 setup.py build_ext --inplace
    ```
-   or to install:
+3. To install the module globally or into the active environment:
    ```bash
    python3 setup.py install
    ```
 
-If this repository uses a different build system (CMake, meson, or pyproject.toml), follow the project-specific instructions.
+If the repository uses a different build system such as CMake, Meson, or `pyproject.toml`, follow the project-specific instructions.
 
 ---
 
-## 6. Usage example
+## 6. Usage Example
 
 Once built and importable:
 
@@ -163,13 +179,14 @@ print("Summary:", sa.statistics(data))
 
 ---
 
-## 7. Tests and validation
+## 7. Tests and Validation
 
-- Add small unit tests that compare the C extension output against Python's `statistics` or NumPy for randomized inputs, including edge cases (empty sequence, single-element, large values, NaNs/infs if you intend to support them).
+- Add unit tests that compare the extension output against Python’s `statistics` module or NumPy for randomized inputs.
+- Include edge cases such as empty sequences, single-element sequences, large values, and NaNs/Infs if supported.
 - Measure performance with realistic dataset sizes to verify the expected speedup over pure Python implementations.
 
 ---
 
 ## 8. License
 
-Add your preferred license here (e.g., MIT, Apache-2.0) or leave as project default.
+Add your preferred license here (for example, MIT or Apache-2.0), or leave this section as the project default.
