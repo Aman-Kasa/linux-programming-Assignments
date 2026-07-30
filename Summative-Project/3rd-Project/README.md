@@ -1,14 +1,14 @@
 # Technical Report: Python C Extension for High-Performance Sensor Data Analysis
 
 **Module:** `sensor_analysis`  
-**Author:** Your Name  
-**Date:** July 2026
+**Author:** Aman Kasa  
+**Date:** July 30, 2026
 
 ---
 
 ## 1. Introduction
 
-A smart agriculture platform collects large volumes of environmental sensor readings (soil moisture, temperature, humidity) from IoT devices. Pure Python processing can become a bottleneck at scale. This project implements a native C extension module named `sensor_analysis` that performs essential statistical computations directly in C and exposes them as standard Python callables.
+A smart agriculture platform collects large volumes of environmental sensor readings (soil moisture, temperature, humidity) from IoT devices. Pure Python processing can become a bottleneck at scale. This project implements a high-performance Python C extension module named `sensor_analysis` to accelerate core statistical computations while preserving a clean Python-facing API.
 
 The module provides five functions:
 - `average`
@@ -35,7 +35,7 @@ The module uses the Python C API (`Python.h`) to:
 
 ### 2.2 No Unnecessary Dynamic Memory Allocation
 
-The module does not call `malloc`, `calloc`, or other heap allocation functions for data storage. Instead, it traverses the input sequence directly through `PySequence_Fast_GET_ITEM`, extracting one number at a time. Statistics are accumulated in local C variables such as `sum`, `min`, and `max`.
+The module does not call `malloc`, `calloc`, or other heap allocation functions for data storage. Instead, it traverses the input sequence directly through `PySequence_Fast_GET_ITEM`, extracting one numeric value at a time.
 
 This design:
 - Eliminates allocation/deallocation overhead.
@@ -44,7 +44,7 @@ This design:
 
 ### 2.3 Reference Counting and Object Lifecycle
 
-Temporary Python objects created during numeric conversion are immediately decremented after their values are extracted. Returned objects are created with the correct reference count, ensuring proper ownership and garbage collection.
+Temporary Python objects created during numeric conversion are immediately decremented after their values are extracted. Returned objects are created with the correct reference count, ensuring proper ownership transfer to Python callers.
 
 ---
 
