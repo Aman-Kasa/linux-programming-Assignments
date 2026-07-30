@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include "common.h"
 
 #define MAX_CLIENTS 10
@@ -29,7 +30,7 @@ char active_users[MAX_CLIENTS][64];
 int active_user_count = 0;
 pthread_mutex_t users_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-const char *valid_users[] = {"aman_a", "student01", "research_lab", "admin_user", "guest"};
+const char *valid_users[] = {"x", "y", "z", "aman", "thadee"};
 const int num_valid_users = 5;
 
 // Graceful shutdown flag
@@ -207,11 +208,11 @@ void *handle_client(void *client_socket_ptr) {
                 pthread_mutex_lock(&eq_mutex);
                 for (int i = 0; i < MAX_EQUIPMENT; i++) {
                     char line[256];   // larger buffer to safely hold any possible combination
-		    snprintf(line, sizeof(line), "ID: %d | %-15s | Status: %s%.63s\n",
-		        eq_list[i].id, eq_list[i].name,
-                        eq_list[i].is_reserved ? "RESERVED by " : "AVAILABLE",
-		        eq_list[i].is_reserved ? eq_list[i].reserved_by : "");
-			strcat(response.payload, line);
+                    snprintf(line, sizeof(line), "ID: %d | %-15s | Status: %s%.63s\n",
+                             eq_list[i].id, eq_list[i].name,
+                             eq_list[i].is_reserved ? "RESERVED by " : "AVAILABLE",
+                             eq_list[i].is_reserved ? eq_list[i].reserved_by : "");
+                    strcat(response.payload, line);
                 }
                 pthread_mutex_unlock(&eq_mutex);
                 send_all(sock, &response, sizeof(Message));
@@ -316,7 +317,24 @@ int main() {
 
     printf("[SERVER] Lab Booking Server running on port %d...\n", PORT);
 
+    // Use poll() to periodically check shutdown_flag
+    struct pollfd pfd;
+    pfd.fd = server_socket;
+    pfd.events = POLLIN;
+
     while (!shutdown_flag) {
+        int ready = poll(&pfd, 1, 1000);  // 1-second timeout
+
+        if (ready < 0) {
+            if (errno == EINTR) continue; // interrupted by a signal
+            perror("poll error");
+            break;
+        }
+
+        if (ready == 0)   // timeout, just re-check shutdown_flag
+            continue;
+
+        // There is an incoming connection
         int *new_sock = malloc(sizeof(int));
         *new_sock = accept(server_socket, (struct sockaddr *)&client_addr, &client_len);
 

@@ -1,0 +1,110 @@
+==========================================
+   STARTING ORDER PROCESSING SYSTEM
+   Target Total Orders: 20
+   Queue Capacity     : 5
+==========================================
+
+[01:06:01] [DELIVERY] Queue is EMPTY. Waiting for kitchen...
+[01:06:03] [KITCHEN]  Prepared Order #1 | Queue Size: 1/5
+[01:06:03] [DELIVERY] Picked up Order #1 | Queue Size: 0/5
+[01:06:05] [KITCHEN]  Prepared Order #2 | Queue Size: 1/5
+
+==========================================
+ [01:06:06] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 2
+   - Orders Delivered : 0
+   - Current Queue Size: 1/5
+==========================================
+
+[01:06:07] [DELIVERY] Completed Delivery for Order #1
+[01:06:07] [DELIVERY] Picked up Order #2 | Queue Size: 0/5
+[01:06:07] [KITCHEN]  Prepared Order #3 | Queue Size: 1/5
+[01:06:09] [KITCHEN]  Prepared Order #4 | Queue Size: 2/5
+[01:06:11] [DELIVERY] Completed Delivery for Order #2
+[01:06:11] [DELIVERY] Picked up Order #3 | Queue Size: 1/5
+
+==========================================
+ [01:06:11] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 4
+   - Orders Delivered : 2
+   - Current Queue Size: 1/5
+==========================================
+
+[01:06:11] [KITCHEN]  Prepared Order #5 | Queue Size: 2/5
+[01:06:13] [KITCHEN]  Prepared Order #6 | Queue Size: 3/5
+[01:06:15] [DELIVERY] Completed Delivery for Order #3
+[01:06:15] [DELIVERY] Picked up Order #4 | Queue Size: 2/5
+[01:06:15] [KITCHEN]  Prepared Order #7 | Queue Size: 3/5
+
+==========================================
+ [01:06:16] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 7
+   - Orders Delivered : 3
+   - Current Queue Size: 3/5
+==========================================
+
+[01:06:17] [KITCHEN]  Prepared Order #8 | Queue Size: 4/5
+[01:06:19] [DELIVERY] Completed Delivery for Order #4
+[01:06:19] [DELIVERY] Picked up Order #5 | Queue Size: 3/5
+[01:06:19] [KITCHEN]  Prepared Order #9 | Queue Size: 4/5
+
+==========================================
+ [01:06:21] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 9
+   - Orders Delivered : 4
+   - Current Queue Size: 4/5
+==========================================
+
+[01:06:21] [KITCHEN]  Prepared Order #10 | Queue Size: 5/5
+[01:06:23] [DELIVERY] Completed Delivery for Order #5
+[01:06:23] [DELIVERY] Picked up Order #6 | Queue Size: 4/5
+[01:06:23] [KITCHEN]  Prepared Order #11 | Queue Size: 5/5
+[01:06:25] [KITCHEN]  Queue is FULL (5/5). Waiting for delivery...
+
+==========================================
+ [01:06:26] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 11
+   - Orders Delivered : 5
+   - Current Queue Size: 5/5
+==========================================
+
+[01:06:27] [DELIVERY] Completed Delivery for Order #6
+[01:06:27] [DELIVERY] Picked up Order #7 | Queue Size: 4/5
+[01:06:27] [KITCHEN]  Prepared Order #12 | Queue Size: 5/5
+[01:06:29] [KITCHEN]  Queue is FULL (5/5). Waiting for delivery...
+[01:06:31] [DELIVERY] Completed Delivery for Order #7
+[01:06:31] [DELIVERY] Picked up Order #8 | Queue Size: 4/5
+[01:06:31] [KITCHEN]  Prepared Order #13 | Queue Size: 5/5
+
+==========================================
+ [01:06:31] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 13
+   - Orders Delivered : 7
+   - Current Queue Size: 5/5
+==========================================
+
+[01:06:33] [KITCHEN]  Queue is FULL (5/5). Waiting for delivery...
+[01:06:35] [DELIVERY] Completed Delivery for Order #8
+[01:06:35] [DELIVERY] Picked up Order #9 | Queue Size: 4/5
+[01:06:35] [KITCHEN]  Prepared Order #14 | Queue Size: 5/5
+
+==========================================
+ [01:06:36] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 14
+   - Orders Delivered : 8
+   - Current Queue Size: 5/5
+==========================================
+
+[01:06:37] [KITCHEN]  Queue is FULL (5/5). Waiting for delivery...
+[01:06:39] [DELIVERY] Completed Delivery for Order #9
+[01:06:39] [DELIVERY] Picked up Order #10 | Queue Size: 4/5
+[01:06:39] [KITCHEN]  Prepared Order #15 | Queue Size: 5/5
+
+==========================================
+ [01:06:41] SYSTEM MONITOR REPORT
+   - Orders Prepared  : 15
+   - Orders Delivered : 9
+   - Current Queue Size: 5/5
+==========================================
+
+[01:06:41]
